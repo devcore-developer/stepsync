@@ -1,5 +1,4 @@
 "use client";
-import { use } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,19 +9,19 @@ import { useStudyPlans } from "@/context/study-plan-context";
 import { ChevronLeft, Check, BookOpen, FileQuestion, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function SystemDetailPage({ params }: { params: Promise<{ id: string; systemId: string }> }) {
-  const { id, systemId } = use(params);
+export default function SystemDetailPage({ params }: { params: { id: string; systemId: string } }) {
+  const { id, systemId } = params;
   const { getPlan, toggleTask } = useStudyPlans();
   const plan = getPlan(id);
   
   if (!plan) return <AppShell><div>Plan not found</div></AppShell>;
 
-  const system = plan.systems.find(s => s.systemId === systemId);
+  const system = plan.systems.find((s: any) => s.systemId === systemId);
   if (!system) return <AppShell><div>System not found</div></AppShell>;
 
-  const tasks = plan.tasks.filter(t => t.systemId === systemId);
-  const completedTasks = tasks.filter(t => t.completed).length;
-  const questions = tasks.filter(t => t.questions).reduce((sum, t) => sum + (t.questions || 0), 0);
+  const tasks = plan.tasks.filter((t: any) => t.systemId === systemId);
+  const completedTasks = tasks.filter((t: any) => t.completed).length;
+  const questions = tasks.filter((t: any) => t.questions).reduce((sum: number, t: any) => sum + (t.questions || 0), 0);
 
   return (
     <AppShell>
@@ -60,7 +59,7 @@ export default function SystemDetailPage({ params }: { params: Promise<{ id: str
         <Card>
           <CardHeader><CardTitle>Tasks</CardTitle></CardHeader>
           <CardContent className="space-y-3">
-            {tasks.map(task => (
+            {tasks.map((task: any) => (
               <div key={task.id} onClick={() => toggleTask(plan.id, task.id)} className={cn("flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition", task.completed ? "border-surface-border bg-surface-muted/50" : "border-surface-border hover:border-brand-300 hover:bg-brand-50/50")}>
                 <div className={cn("h-5 w-5 rounded-md border flex items-center justify-center", task.completed ? "bg-brand-500 border-brand-500 text-white" : "border-slate-300 bg-white")}>
                   {task.completed && <Check className="h-3 w-3" strokeWidth={3} />}

@@ -7,20 +7,28 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAccount } from "@/context/account-context";
 import { ProfileEditModal } from "@/components/account/profile-edit-modal";
-import { Mail, CalendarClock, Clock, Target, Flame, Edit, Award, TrendingUp } from "lucide-react";
+import { Mail, CalendarClock, Clock, Target, Flame, Edit, LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
 
 export default function ProfilePage() {
   const { profile } = useAccount();
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const examDate = new Date(profile.examDate);
-  const daysRemaining = Math.ceil((examDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const examDate = profile.examDate ? new Date(profile.examDate) : null;
+  const daysRemaining = examDate ? Math.ceil((examDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
 
   return (
     <AppShell>
       <div className="animate-fade-in space-y-6 max-w-4xl mx-auto">
         <PageHeader title="Profile" description="Your study identity and preferences">
-          <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}><Edit className="h-4 w-4" /> Edit Profile</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsEditOpen(true)}>
+              <Edit className="h-4 w-4" /> Edit Profile
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => signOut({ callbackUrl: '/login' })}>
+              <LogOut className="h-4 w-4" /> Sign Out
+            </Button>
+          </div>
         </PageHeader>
 
         {/* Profile Header */}
@@ -31,13 +39,12 @@ export default function ProfilePage() {
               <div className="flex items-end gap-4">
                 <div className="rounded-full ring-4 ring-white">
                   <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-2xl font-bold text-white ring-4 ring-white">
-                    {profile.avatarInitials}
+                    {profile.avatarInitials || "NU"}
                   </div>
                 </div>
                 <div className="pb-2">
-                  <h2 className="text-xl font-bold text-navy-700">{profile.fullName}</h2>
-                  <p className="text-sm text-ink-secondary">{profile.usmleStep} Candidate</p>
-                  <p className="text-xs text-ink-tertiary mt-1">Member since {new Date(profile.joinedAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                  <h2 className="text-xl font-bold text-navy-700">{profile.fullName || "New User"}</h2>
+                  <p className="text-sm text-ink-secondary">{profile.usmleStep || "USMLE Candidate"}</p>
                 </div>
               </div>
             </div>
@@ -45,19 +52,19 @@ export default function ProfilePage() {
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-md border border-surface-border p-3">
                 <div className="flex items-center gap-2 text-ink-secondary"><Mail className="h-3.5 w-3.5" /><span className="text-xs uppercase">Email</span></div>
-                <p className="mt-1 truncate text-sm font-medium text-navy-700">{profile.email}</p>
+                <p className="mt-1 truncate text-sm font-medium text-navy-700">{profile.email || "No email added yet."}</p>
               </div>
               <div className="rounded-md border border-surface-border p-3">
                 <div className="flex items-center gap-2 text-ink-secondary"><CalendarClock className="h-3.5 w-3.5" /><span className="text-xs uppercase">Exam Date</span></div>
-                <p className="mt-1 text-sm font-medium text-navy-700">{examDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p className="mt-1 text-sm font-medium text-navy-700">{examDate ? examDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : "No exam date set."}</p>
               </div>
               <div className="rounded-md border border-surface-border p-3">
-                <div className="flex items-center gap-2 text-ink-secondary"><Target className="h-3.5 w-3.5" /><span className="text-xs uppercase">Target Score</span></div>
-                <p className="mt-1 text-sm font-medium text-navy-700">{profile.targetScore}</p>
+                <div className="flex items-center gap-2 text-ink-secondary"><Target className="h-3.5 w-3.5" /><span className="text-xs uppercase">Weekly Goal</span></div>
+                <p className="mt-1 text-sm font-medium text-navy-700">{profile.weeklyGoal ? `${profile.weeklyGoal} hours/week` : "No goal set."}</p>
               </div>
               <div className="rounded-md border border-surface-border p-3">
-                <div className="flex items-center gap-2 text-ink-secondary"><Clock className="h-3.5 w-3.5" /><span className="text-xs uppercase">Weekly Goal</span></div>
-                <p className="mt-1 text-sm font-medium text-navy-700">{profile.weeklyStudyGoal} hours/week</p>
+                <div className="flex items-center gap-2 text-ink-secondary"><Clock className="h-3.5 w-3.5" /><span className="text-xs uppercase">Session Length</span></div>
+                <p className="mt-1 text-sm font-medium text-navy-700">{profile.preferredSessionLength ? `${profile.preferredSessionLength} min` : "Not set"}</p>
               </div>
             </div>
           </CardContent>
@@ -72,66 +79,22 @@ export default function ProfilePage() {
           </CardContent></Card>
           <Card><CardContent className="p-5">
             <p className="text-xs uppercase tracking-wide text-ink-tertiary">Current Readiness</p>
-            <p className="text-3xl font-bold text-brand-600 mt-2">78%</p>
-            <Badge variant="brand" className="mt-2">On Track</Badge>
+            <p className="text-3xl font-bold text-brand-600 mt-2">0%</p>
+            <Badge variant="default" className="mt-2">Insufficient Data</Badge>
           </CardContent></Card>
           <Card><CardContent className="p-5">
             <p className="text-xs uppercase tracking-wide text-ink-tertiary">Study Streak</p>
-            <p className="text-3xl font-bold text-accent-gold mt-2 flex items-center gap-1"><Flame className="h-6 w-6" /> 12</p>
+            <p className="text-3xl font-bold text-accent-gold mt-2 flex items-center gap-1"><Flame className="h-6 w-6" /> 0</p>
             <p className="text-xs text-ink-secondary mt-1">days</p>
           </CardContent></Card>
         </div>
-
-        {/* Study Preferences Summary */}
-        <Card>
-          <CardHeader><CardTitle>Study Preferences</CardTitle></CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex justify-between border-b border-surface-border pb-2">
-              <span className="text-sm text-ink-secondary">Study Days</span>
-              <span className="text-sm font-medium text-navy-700">{profile.preferredStudyDays.join(', ')}</span>
-            </div>
-            <div className="flex justify-between border-b border-surface-border pb-2">
-              <span className="text-sm text-ink-secondary">Session Length</span>
-              <span className="text-sm font-medium text-navy-700">{profile.preferredSessionLength} min</span>
-            </div>
-            <div className="flex justify-between border-b border-surface-border pb-2">
-              <span className="text-sm text-ink-secondary">Start Time</span>
-              <span className="text-sm font-medium text-navy-700">{profile.preferredStudyStartTime}</span>
-            </div>
-            <div className="flex justify-between border-b border-surface-border pb-2">
-              <span className="text-sm text-ink-secondary">Study Mode</span>
-              <span className="text-sm font-medium text-navy-700">{profile.defaultStudyMode}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-ink-secondary">Question Mode</span>
-              <span className="text-sm font-medium text-navy-700">{profile.questionPracticeMode}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-ink-secondary">Review Type</span>
-              <span className="text-sm font-medium text-navy-700">{profile.reviewPreference}</span>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Achievements */}
         <Card>
           <CardHeader><CardTitle>Achievements</CardTitle></CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {[
-                { icon: Flame, label: '2-Week Streak', color: 'bg-amber-50 text-accent-gold' },
-                { icon: Award, label: 'Cardio Master', color: 'bg-brand-50 text-brand-500' },
-                { icon: TrendingUp, label: 'Rising Star', color: 'bg-emerald-50 text-emerald-600' },
-                { icon: Clock, label: '100 Club', color: 'bg-navy-50 text-navy-500' },
-              ].map((a, i) => {
-                const Icon = a.icon;
-                return (
-                  <div key={i} className="rounded-md border border-surface-border p-3 text-center">
-                    <div className={`mx-auto flex h-10 w-10 items-center justify-center rounded-full ${a.color}`}><Icon className="h-5 w-5" /></div>
-                    <p className="mt-2 text-xs font-semibold text-navy-700">{a.label}</p>
-                  </div>
-                );
-              })}
+            <div className="text-center py-8 text-sm text-ink-secondary">
+              No achievements unlocked yet. Complete study tasks to earn badges!
             </div>
           </CardContent>
         </Card>

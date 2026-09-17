@@ -1,6 +1,18 @@
-import { LayoutDashboard, CalendarDays, BarChart3, Users, MessageSquare, Network, Bell, User, Settings, LifeBuoy, BookOpen, BrainCircuit, LineChart, FolderKanban, FileQuestion, Layers, ShieldCheck, Sparkles, Target } from "lucide-react";
+import { LayoutDashboard, CalendarDays, BarChart3, Users, MessageSquare, Network, Bell, User, Settings, LifeBuoy, BookOpen, BrainCircuit, LineChart, FolderKanban, FileQuestion, Layers, ShieldCheck, ShieldAlert } from "lucide-react";
 
-export const navSections = [
+export interface NavItem {
+  label: string;
+  href: string;
+  icon: any;
+  adminOnly?: boolean; // Add this line
+}
+
+export interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+export const navSections: NavSection[] = [
   {
     label: "Main",
     items: [
@@ -13,17 +25,16 @@ export const navSections = [
       { label: "Question Bank", href: "/questions", icon: FileQuestion },
       { label: "Review", href: "/review", icon: Layers },
       { label: "Readiness", href: "/readiness", icon: ShieldCheck },
-      { label: "Assistant", href: "/assistant", icon: Sparkles },
-      { label: "Accountability", href: "/accountability", icon: Target }, // <-- Added
+      { label: "Assistant", href: "/assistant", icon: ShieldAlert },
+      { label: "Accountability", href: "/accountability", icon: Users },
       { label: "Analytics", href: "/analytics", icon: BarChart3 },
     ],
   },
   {
-    label: "Community",
+    label: "Administration",
     items: [
-      { label: "Study Partners", href: "/partners", icon: Users },
-      { label: "Messages", href: "/messages", icon: MessageSquare },
-      { label: "Groups", href: "/groups", icon: Network },
+      { label: "Admin Dashboard", href: "/admin", icon: ShieldAlert, adminOnly: true },
+      { label: "User Management", href: "/admin/users", icon: Users, adminOnly: true },
     ],
   },
   {
@@ -36,4 +47,4 @@ export const navSections = [
   },
 ];
 
-export const supportItem = { label: "Help & Support", href: "/settings", icon: LifeBuoy };
+export const supportItem: NavItem = { label: "Help & Support", href: "/settings", icon: LifeBuoy };

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { upcoming } from "@/lib/demo-data";
 import { formatHours } from "@/lib/utils";

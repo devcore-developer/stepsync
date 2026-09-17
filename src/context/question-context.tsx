@@ -1,11 +1,12 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { Question, QuestionBlockResult, mockQuestions, QuestionAnswer, calculateAccuracy } from '@/lib/question-data';
+import { Question, QuestionBlockResult, mockQuestions, calculateAccuracy } from '@/lib/question-data';
+import { saveQuestionSession } from '@/app/actions/questions';
 
 interface QuestionContextType {
   activeBlock: {
     questions: Question[];
-    answers: Record<string, QuestionAnswer>;
+    answers: Record<string, any>;
     currentQuestionIndex: number;
     mode: 'Timed' | 'Tutor';
     remainingTime: number;
@@ -16,7 +17,7 @@ interface QuestionContextType {
   toggleMark: (questionId: string) => void;
   nextQuestion: () => void;
   prevQuestion: () => void;
-  submitBlock: () => QuestionBlockResult;
+  submitBlock: () => Promise<QuestionBlockResult>;
   clearActiveBlock: () => void;
 }
 
@@ -33,7 +34,7 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
       answers: {},
       currentQuestionIndex: 0,
       mode: config.mode,
-      remainingTime: config.count * 90, // 90 sec/question
+      remainingTime: config.count * 90,
       startedAt: Date.now(),
     };
     setActiveBlock(newBlock);
@@ -79,7 +80,7 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
   const nextQuestion = () => setActiveBlock(prev => prev ? { ...prev, currentQuestionIndex: Math.min(prev.currentQuestionIndex + 1, prev.questions.length - 1) } : prev);
   const prevQuestion = () => setActiveBlock(prev => prev ? { ...prev, currentQuestionIndex: Math.max(prev.currentQuestionIndex - 1, 0) } : prev);
 
-  const submitBlock = (): QuestionBlockResult => {
+  const submitBlock = async (): Promise<QuestionBlockResult> => {
     if (!activeBlock) throw new Error("No active block");
     
     const answered = Object.values(activeBlock.answers).filter(a => a.selectedAnswer !== undefined && a.selectedAnswer >= 0);
@@ -87,13 +88,6 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
     const incorrect = answered.filter(a => !a.isCorrect).length;
     const unanswered = activeBlock.questions.length - answered.length;
     const accuracy = calculateAccuracy(correct, activeBlock.questions.length);
-
-    const systemResultsMap: Record<string, { correct: number; total: number }> = {};
-    activeBlock.questions.forEach(q => {
-      if (!systemResultsMap[q.system]) systemResultsMap[q.system] = { correct: 0, total: 0 };
-      systemResultsMap[q.system].total++;
-      if (activeBlock.answers[q.id]?.isCorrect) systemResultsMap[q.system].correct++;
-    });
 
     const result: QuestionBlockResult = {
       blockId: `block-${activeBlock.startedAt}`,
@@ -104,8 +98,32 @@ export function QuestionProvider({ children }: { children: React.ReactNode }) {
       unansweredQuestions: unanswered,
       accuracy,
       durationSeconds: Math.round((Date.now() - activeBlock.startedAt) / 1000),
-      systemResults: Object.entries(systemResultsMap).map(([system, val]) => ({ system, ...val }))
+      systemResults: []
     };
+
+    // Prepare answers for database
+    const dbAnswers = answered.map(a => {
+      const q = activeBlock.questions.find(q => q.id === a.questionId);
+      return {
+        questionId: a.questionId,
+        system: q?.system || "Unknown",
+        isCorrect: a.isCorrect,
+        timeSpent: a.timeSpent || 0
+      };
+    });
+
+    // Save to database
+    try {
+      await saveQuestionSession({
+        mode: activeBlock.mode,
+        totalQuestions: result.totalQuestions,
+        correctAnswers: result.correctAnswers,
+        accuracy: result.accuracy,
+        answers: dbAnswers
+      });
+    } catch (error) {
+      console.error("Failed to save question session", error);
+    }
     
     setActiveBlock(null);
     return result;

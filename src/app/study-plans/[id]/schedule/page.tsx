@@ -1,5 +1,5 @@
 "use client";
-import { use, useState } from "react";
+import { useState } from "react";
 import { AppShell } from "@/components/layout/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,8 @@ import { useStudyPlans } from "@/context/study-plan-context";
 import { ChevronLeft, ChevronRight, CalendarDays, ListTree } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function SchedulePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function SchedulePage({ params }: { params: { id: string } }) {
+  const { id } = params;
   const { getPlan } = useStudyPlans();
   const plan = getPlan(id);
   const [view, setView] = useState<"week" | "timeline">("week");
@@ -33,14 +33,14 @@ export default function SchedulePage({ params }: { params: Promise<{ id: string 
               const date = new Date();
               date.setDate(date.getDate() - date.getDay() + i + 1);
               const dateStr = date.toISOString().split('T')[0];
-              const dayTasks = plan.tasks.filter(t => t.date === dateStr);
+              const dayTasks = plan.tasks.filter((t: any) => t.date === dateStr);
               return (
                 <Card key={day} className="min-h-[200px]">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">{day} <span className="text-ink-tertiary font-normal">{date.getDate()}</span></CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {dayTasks.map(t => (
+                    {dayTasks.map((t: any) => (
                       <div key={t.id} className="text-xs p-2 rounded bg-surface-subtle border-l-2 border-brand-500">
                         <p className="font-semibold text-navy-700">{t.title}</p>
                         <p className="text-ink-tertiary">{t.duration} min</p>
@@ -56,7 +56,7 @@ export default function SchedulePage({ params }: { params: Promise<{ id: string 
           <Card>
             <CardHeader><CardTitle>System Timeline</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              {plan.systems.map(sys => (
+              {plan.systems.map((sys: any) => (
                 <div key={sys.id} className="grid grid-cols-12 gap-4 items-center">
                   <div className="col-span-3 text-sm font-semibold text-navy-700">{sys.name}</div>
                   <div className="col-span-6">

@@ -6,12 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAccount } from "@/context/account-context";
 
-interface Props {
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-export function ProfileEditModal({ isOpen, onClose }: Props) {
+export function ProfileEditModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { profile, updateProfile } = useAccount();
   const [form, setForm] = useState(profile);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -89,7 +84,7 @@ export function ProfileEditModal({ isOpen, onClose }: Props) {
             </div>
             <div>
               <Label>Weekly Study Goal (hours)</Label>
-              <Input type="number" value={form.weeklyStudyGoal} onChange={e => setForm(p => ({ ...p, weeklyStudyGoal: Number(e.target.value) }))} />
+              <Input type="number" value={form.weeklyGoal} onChange={e => setForm(p => ({ ...p, weeklyGoal: Number(e.target.value) }))} />
             </div>
             <div>
               <Label>Preferred Session Length (min)</Label>

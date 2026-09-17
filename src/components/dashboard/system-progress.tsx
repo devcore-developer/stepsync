@@ -1,38 +1,25 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+"use client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { systemProgress } from "@/lib/demo-data";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { systems } from "@/lib/demo-data";
 
 export function SystemProgress() {
   return (
     <Card>
       <CardHeader>
         <CardTitle>System Progress</CardTitle>
-        <Link href="/study-plan">
-          <Button variant="ghost" size="sm">
-            All systems <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
-        </Link>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {systemProgress.map((system) => (
-            <div key={system.id} className="group">
-              <div className="mb-1.5 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[0.8125rem] font-semibold text-navy-500">{system.name}</span>
-                  <span className="text-[0.6875rem] text-ink-tertiary">
-                    {system.tasksCompleted}/{system.tasksTotal} tasks
-                  </span>
-                </div>
-                <span className="text-[0.8125rem] font-bold text-navy-500">{system.progress}%</span>
-              </div>
-              <Progress value={system.progress} color={system.color} size="sm" />
+      <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {systems.map((system) => (
+          <div key={system.id} className="rounded-lg border border-surface-border p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-semibold text-navy-700">{system.name}</span>
+              <span className="text-sm font-bold text-navy-700">{system.progress}%</span>
             </div>
-          ))}
-        </div>
+            <Progress value={system.progress} color="brand" size="sm" />
+            <p className="text-xs text-ink-tertiary mt-1">{system.completedTasks} / {system.totalTasks} tasks</p>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );

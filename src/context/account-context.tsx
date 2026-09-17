@@ -1,68 +1,84 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useSession } from 'next-auth/react';
+import { getUserProfile, updateUserProfile } from '@/app/actions/data';
 
 export interface UserProfile {
   fullName: string;
   email: string;
   avatarInitials: string;
-  timezone: string;
   usmleStep: string;
   examDate: string;
   targetScore: string;
-  weeklyStudyGoal: number;
+  weeklyGoal: number;
   preferredStudyDays: string[];
   preferredSessionLength: number;
-  preferredStudyStartTime: string;
-  defaultStudyMode: 'Focus' | 'Balanced' | 'Intensive';
-  questionPracticeMode: 'Timed' | 'Tutor' | 'Mixed';
-  reviewPreference: 'Flashcards' | 'Incorrect' | 'Weak Topics' | 'Mixed';
-  joinedAt: string;
+  timezone: string;
+  defaultStudyMode: string;
+  questionPracticeMode: string;
+  reviewPreference: string;
 }
 
 interface AccountContextType {
   profile: UserProfile;
-  updateProfile: (updates: Partial<UserProfile>) => void;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
 }
 
 const defaultProfile: UserProfile = {
-  fullName: 'Alex Morgan',
-  email: 'alex.morgan@example.com',
-  avatarInitials: 'AM',
-  timezone: 'America/New_York',
+  fullName: 'Guest',
+  email: '',
+  avatarInitials: 'GU',
   usmleStep: 'Step 1',
-  examDate: '2027-03-18',
+  examDate: '',
   targetScore: 'Pass',
-  weeklyStudyGoal: 32,
-  preferredStudyDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-  preferredSessionLength: 60,
-  preferredStudyStartTime: '08:00',
+  weeklyGoal: 20,
+  preferredStudyDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+  preferredSessionLength: 45,
+  timezone: 'America/New_York',
   defaultStudyMode: 'Balanced',
   questionPracticeMode: 'Mixed',
   reviewPreference: 'Mixed',
-  joinedAt: '2024-06-15'
 };
 
 const AccountContext = createContext<AccountContextType | undefined>(undefined);
 
 export function AccountProvider({ children }: { children: ReactNode }) {
+  const { data: session } = useSession();
   const [profile, setProfile] = useState<UserProfile>(defaultProfile);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('stepsync_account');
-      if (stored) {
-        const data = JSON.parse(stored);
-        if (data.profile) setProfile(data.profile);
+    async function fetchProfile() {
+      if (session?.user) {
+        try {
+          const dbProfile = await getUserProfile();
+          setProfile({
+            ...defaultProfile,
+            fullName: session.user.name || "User",
+            email: session.user.email || "",
+            avatarInitials: (session.user.name || "U").split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+            examDate: dbProfile.examDate || "",
+            weeklyGoal: dbProfile.weeklyGoal || 20,
+            preferredStudyDays: dbProfile.studyDays ? dbProfile.studyDays.split(',') : defaultProfile.preferredStudyDays,
+            preferredSessionLength: dbProfile.sessionLength || 45,
+          });
+        } catch (error) {
+          console.error("Failed to fetch profile", error);
+        }
+      } else {
+        setProfile(defaultProfile);
       }
-    } catch {}
-  }, []);
+    }
+    fetchProfile();
+  }, [session]);
 
-  useEffect(() => {
-    localStorage.setItem('stepsync_account', JSON.stringify({ profile }));
-  }, [profile]);
-
-  const updateProfile = (updates: Partial<UserProfile>) => {
+  const updateProfile = async (updates: Partial<UserProfile>) => {
     setProfile(prev => ({ ...prev, ...updates }));
+    await updateUserProfile({
+      examDate: updates.examDate,
+      weeklyGoal: updates.weeklyGoal,
+      studyDays: updates.preferredStudyDays?.join(','),
+      sessionLength: updates.preferredSessionLength,
+    });
   };
 
   return (

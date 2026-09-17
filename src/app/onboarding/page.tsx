@@ -6,7 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Check, ChevronLeft, ChevronRight, Sparkles, Target, CalendarDays, Clock, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { onboardingResources } from "@/lib/demo-data";
+
+const onboardingResources = [
+  { id: "fa", name: "First Aid" },
+  { id: "uw", name: "UWorld" },
+  { id: "bb", name: "Boards & Beyond" },
+  { id: "path", name: "Pathoma" },
+  { id: "sketch", name: "Sketchy" },
+  { id: "anki", name: "Anki" },
+];
 
 const steps = [
   { title: "Let's build your USMLE Step 1 plan.", description: "Tell us a little about your preparation so StepSync can organize your study journey." },

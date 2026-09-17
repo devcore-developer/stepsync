@@ -1,68 +1,63 @@
-// src/context/study-plan-context.tsx
 "use client";
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { StudyPlan } from '@/lib/types';
-import { generateStudyPlan } from '@/lib/planner-engine';
-import { usmleSystems } from '@/lib/usmle-systems';
+import { useSession } from 'next-auth/react';
+import { getStudyPlans, createStudyPlan, toggleStudyTask } from '@/app/actions/data';
 
 interface StudyPlanContextType {
-  plans: StudyPlan[];
-  addPlan: (plan: StudyPlan) => void;
-  toggleTask: (planId: string, taskId: string) => void;
-  getPlan: (id: string) => StudyPlan | undefined;
+  plans: any[];
+  loading: boolean;
+  addPlan: (planData: any) => Promise<void>;
+  toggleTask: (planId: string, taskId: string) => Promise<void>;
+  getPlan: (id: string) => any | undefined;
 }
 
 const StudyPlanContext = createContext<StudyPlanContextType | undefined>(undefined);
 
 export function StudyPlanProvider({ children }: { children: React.ReactNode }) {
-  const [plans, setPlans] = useState<StudyPlan[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  const { data: session } = useSession();
+  const [plans, setPlans] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem('stepsync_plans');
-    if (stored) {
-      setPlans(JSON.parse(stored));
-    } else {
-      const demoPlan = generateStudyPlan({
-        name: "USMLE Step 1 — 8 Month Marathon",
-        startDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        examDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        studyDaysPerWeek: 6,
-        dailyHours: "5-6 hours", // Changed from 5 to "5-6 hours"
-        selectedSystems: usmleSystems.slice(0, 5),
-        resources: ["First Aid", "UWorld", "Pathoma"],
-        questionTarget: 40,
-        strategy: "Balanced"
-      });
-      demoPlan.tasks.slice(0, 15).forEach(t => t.completed = true);
-      demoPlan.progress = Math.round((15 / demoPlan.tasks.length) * 100);
-      setPlans([demoPlan]);
+    async function fetchPlans() {
+      if (session?.user) {
+        setLoading(true);
+        const userPlans = await getStudyPlans();
+        setPlans(userPlans);
+        setLoading(false);
+      } else {
+        setPlans([]);
+        setLoading(false);
+      }
     }
-    setLoaded(true);
-  }, []);
+    fetchPlans();
+  }, [session]);
 
-  useEffect(() => {
-    if (loaded) {
-      localStorage.setItem('stepsync_plans', JSON.stringify(plans));
-    }
-  }, [plans, loaded]);
+  const addPlan = async (planData: any) => {
+    await createStudyPlan(planData);
+    const updatedPlans = await getStudyPlans();
+    setPlans(updatedPlans);
+  };
 
-  const addPlan = (plan: StudyPlan) => setPlans(prev => [...prev, plan]);
-  
-  const toggleTask = (planId: string, taskId: string) => {
+  const toggleTask = async (planId: string, taskId: string) => {
+    // Optimistic update
     setPlans(prev => prev.map(p => {
       if (p.id !== planId) return p;
-      const updatedTasks = p.tasks.map(t => t.id === taskId ? { ...t, completed: !t.completed } : t);
-      const completedCount = updatedTasks.filter(t => t.completed).length;
-      const progress = Math.round((completedCount / updatedTasks.length) * 100);
-      return { ...p, tasks: updatedTasks, progress };
+      const updatedTasks = p.tasks.map((t: any) => t.id === taskId ? { ...t, completed: !t.completed } : t);
+      return { ...p, tasks: updatedTasks };
     }));
+
+    // DB update
+    const task = plans.find(p => p.id === planId)?.tasks.find((t: any) => t.id === taskId);
+    if (task) {
+      await toggleStudyTask(taskId, !task.completed);
+    }
   };
 
   const getPlan = (id: string) => plans.find(p => p.id === id);
 
   return (
-    <StudyPlanContext.Provider value={{ plans, addPlan, toggleTask, getPlan }}>
+    <StudyPlanContext.Provider value={{ plans, loading, addPlan, toggleTask, getPlan }}>
       {children}
     </StudyPlanContext.Provider>
   );

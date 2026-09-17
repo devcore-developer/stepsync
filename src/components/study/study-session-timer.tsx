@@ -3,21 +3,23 @@ import { useState, useEffect } from "react";
 import { Play, Pause, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { DailyTask } from "@/lib/daily-study-data";
+import { saveStudySession } from "@/app/actions/analytics"; // استيراد الدالة الحقيقية
 
 interface StudySessionTimerProps {
-  activeTask: DailyTask | null;
+  activeTask: any | null;
   onClearActive: () => void;
 }
 
 export function StudySessionTimer({ activeTask, onClearActive }: StudySessionTimerProps) {
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     if (activeTask) {
       setSeconds(0);
       setIsRunning(true);
+      setIsSaved(false);
     } else {
       setIsRunning(false);
     }
@@ -52,9 +54,14 @@ export function StudySessionTimer({ activeTask, onClearActive }: StudySessionTim
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const handleFinish = () => {
+  const handleFinish = async () => {
     setIsRunning(false);
-    onClearActive();
+    if (seconds > 0 && !isSaved) {
+      setIsSaved(true);
+      // حفظ الوقت الحقيقي في قاعدة البيانات
+      await saveStudySession(seconds);
+      onClearActive();
+    }
   };
 
   return (
@@ -63,18 +70,34 @@ export function StudySessionTimer({ activeTask, onClearActive }: StudySessionTim
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-navy-200">Study Session</p>
-            <h3 className="text-sm font-bold mt-1">{activeTask.system} — {activeTask.topic}</h3>
+            <h3 className="text-sm font-bold mt-1">
+              {activeTask.system || "Study"} — {activeTask.title || "Active Task"}
+            </h3>
           </div>
-          <Button size="icon-sm" variant="ghost" className="text-white hover:bg-white/10" onClick={() => setIsRunning(!isRunning)}>
+          <Button 
+            size="icon-sm" 
+            variant="ghost" 
+            className="text-white hover:bg-white/10" 
+            onClick={() => setIsRunning(!isRunning)}
+            disabled={isSaved}
+          >
             {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </Button>
         </div>
         
         <div className="text-center my-4">
-          <p className="text-4xl font-mono font-bold tracking-wider">{formatTime(seconds)}</p>
+          <p className="text-4xl font-mono font-bold tracking-wider">
+            {isSaved ? "Session Saved" : formatTime(seconds)}
+          </p>
         </div>
 
-        <Button variant="red" size="sm" className="w-full" onClick={handleFinish}>
+        <Button 
+          variant="red" 
+          size="sm" 
+          className="w-full" 
+          onClick={handleFinish}
+          disabled={isSaved || seconds === 0}
+        >
           <Square className="h-3.5 w-3.5 mr-1" /> Finish Session
         </Button>
       </CardContent>

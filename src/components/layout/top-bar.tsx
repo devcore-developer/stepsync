@@ -2,7 +2,7 @@
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Search, Menu } from "lucide-react";
-import { demoUser } from "@/lib/demo-data";
+import { useAccount } from "@/context/account-context";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 
 const titleMap: Record<string, string> = {
@@ -26,6 +26,7 @@ const titleMap: Record<string, string> = {
 export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   const pathname = usePathname();
   const pageTitle = titleMap[pathname ?? ""] ?? "Dashboard";
+  const { profile } = useAccount();
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-surface-border bg-white/95 px-4 backdrop-blur-sm sm:px-6">
@@ -51,12 +52,14 @@ export function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
 
       <div className="hidden h-6 w-px bg-surface-border sm:block" />
 
-      <Link href="/settings" className="flex items-center gap-2.5 rounded-md p-1 pr-2 hover:bg-surface-muted">
+      <Link href="/profile" className="flex items-center gap-2.5 rounded-md p-1 pr-2 hover:bg-surface-muted">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-600 text-[0.75rem] font-semibold ring-2 ring-white text-white">
-          {demoUser.avatarInitials}
+          {profile.avatarInitials || "NU"}
         </div>
         <div className="hidden text-left lg:block">
-          <p className="text-[0.8125rem] font-semibold leading-tight text-navy-700">{demoUser.name}</p>
+          <p className="text-[0.8125rem] font-semibold leading-tight text-navy-700">
+            {profile.fullName || "Guest"}
+          </p>
           <p className="text-[0.6875rem] text-ink-secondary">Step 1 Candidate</p>
         </div>
       </Link>

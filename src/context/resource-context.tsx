@@ -1,47 +1,54 @@
 "use client";
-import React, { createContext, useContext, useState } from 'react';
-import { Resource, resourceScenarios, unlinkedStudyTasks } from '@/lib/resource-data';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { getResources, createResource, deleteResource } from '@/app/actions/data';
+import { unlinkedStudyTasks } from '@/lib/resource-data';
 
 interface ResourceContextType {
-  resources: Resource[];
+  resources: any[];
   unlinkedTasks: typeof unlinkedStudyTasks;
-  addResource: (res: Omit<Resource, 'id' | 'isCustom'>) => void;
-  deleteResource: (id: string) => void;
+  addResource: (name: string, type: string) => Promise<void>;
+  deleteResource: (id: string) => Promise<void>;
   assignTaskResource: (taskId: string, resourceId: string) => void;
-  setScenario: (id: string) => void;
 }
 
 const ResourceContext = createContext<ResourceContextType | undefined>(undefined);
 
 export function ResourceProvider({ children }: { children: React.ReactNode }) {
-  const [scenarioId, setScenarioId] = useState('active');
-  const [extraResources, setExtraResources] = useState<Resource[]>([]);
-  const [unlinked, setUnlinked] = useState(unlinkedStudyTasks);
+  const { data: session } = useSession();
+  const [resources, setResources] = useState<any[]>([]);
+  const [unlinked] = useState(unlinkedStudyTasks);
 
-  const currentScenario = resourceScenarios.find(s => s.id === scenarioId)!;
-  const resources = [...currentScenario.resources, ...extraResources];
+  useEffect(() => {
+    async function fetchResources() {
+      if (session?.user) {
+        const dbResources = await getResources();
+        setResources(dbResources);
+      } else {
+        setResources([]);
+      }
+    }
+    fetchResources();
+  }, [session]);
 
-  const addResource = (res: Omit<Resource, 'id' | 'isCustom'>) => {
-    const newRes: Resource = { ...res, id: `custom-${Date.now()}`, isCustom: true };
-    setExtraResources(prev => [...prev, newRes]);
+  const addResource = async (name: string, type: string) => {
+    await createResource({name, type});
+    const updated = await getResources();
+    setResources(updated);
   };
 
-  const deleteResource = (id: string) => {
-    setExtraResources(prev => prev.filter(r => r.id !== id));
+  const deleteResource = async (id: string) => {
+    await deleteResource(id);
+    setResources(prev => prev.filter(r => r.id !== id));
   };
 
   const assignTaskResource = (taskId: string, resourceId: string) => {
-    setUnlinked(prev => prev.filter(t => t.id !== taskId));
-  };
-
-  const setScenario = (id: string) => {
-    setScenarioId(id);
-    setExtraResources([]);
-    setUnlinked(unlinkedStudyTasks);
+    // يمكن ربطها لاحقاً بجدول المهام، حالياً هي واجهة فقط
+    console.log(`Assigned ${resourceId} to ${taskId}`);
   };
 
   return (
-    <ResourceContext.Provider value={{ resources, unlinkedTasks: unlinked, addResource, deleteResource, assignTaskResource, setScenario }}>
+    <ResourceContext.Provider value={{ resources, unlinkedTasks: unlinked, addResource, deleteResource, assignTaskResource }}>
       {children}
     </ResourceContext.Provider>
   );

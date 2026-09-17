@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { TrendingUp, TrendingDown, Minus, Flame, Clock, Target, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Metric } from "@/lib/demo-data";

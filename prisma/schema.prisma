@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String?
+  role          String    @default("USER") // "USER" | "ADMIN"
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  
+  profile       UserProfile?
+  studyPlans    StudyPlan[]
+  decks         FlashcardDeck[]
+  resources     Resource[]
+  notifications Notification[]
+  questionSessions QuestionSession[]
+  flashcardReviews FlashcardReview[]
+  studySessions     StudySession[]
+  auditLogs    AuditLog[] // Relation for actions performed BY this user
+}
+
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model UserProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  examDate      String?
+  targetScore   String?
+  weeklyGoal    Int      @default(20)
+  studyDays     String   @default("Mon,Tue,Wed,Thu,Fri")
+  sessionLength Int      @default(45)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model StudyPlan {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  examDate  String
+  startDate String
+  status    String   @default("Active")
+  progress  Int      @default(0)
+  createdAt DateTime @default(now())
+  tasks     StudyTask[]
+}
+
+model StudyTask {
+  id        String   @id @default(cuid())
+  planId    String
+  plan      StudyPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  title     String
+  system    String
+  date      String
+  type      String   @default("Study")
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model FlashcardDeck {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime @default(now())
+  cards     Flashcard[]
+}
+
+model Flashcard {
+  id        String   @id @default(cuid())
+  deckId    String
+  deck      FlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  front     String
+  back      String
+  status    String   @default("NEW")
+  dueDate   DateTime @default(now())
+  interval  Int      @default(0)
+  ease      Float    @default(2.5)
+  repetitions Int    @default(0)
+  createdAt DateTime @default(now())
+  reviews   FlashcardReview[]
+}
+
+model Resource {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      String
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+model QuestionSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mode            String
+  totalQuestions  Int
+  correctAnswers  Int
+  accuracy        Float
+  createdAt       DateTime @default(now())
+  answers         QuestionAnswer[]
+}
+
+model QuestionAnswer {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    QuestionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId String
+  system     String
+  isCorrect  Boolean
+  timeSpent  Int      @default(0)
+}
+
+model FlashcardReview {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cardId     String
+  card       Flashcard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  rating     String   // "Again", "Hard", "Good", "Easy"
+  reviewedAt DateTime @default(now())
+}
+
+model StudySession {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  duration  Int      // بالثواني
+  date      DateTime @default(now())
+}
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  action     String
+  targetType String
+  targetId   String
+  metadata   String?
+  createdAt  DateTime @default(now())
+}

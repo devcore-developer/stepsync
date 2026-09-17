@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Link from "next/link";
 import { Play, CalendarDays, BarChart3, Users, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";

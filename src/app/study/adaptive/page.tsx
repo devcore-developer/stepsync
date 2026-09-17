@@ -1,123 +1,70 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/app-shell";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/shared/page-header";
-import { ScenarioSelector } from "@/components/adaptive/scenario-selector";
-import { AdaptiveStatus } from "@/components/adaptive/adaptive-status";
-import { ScheduleImpact } from "@/components/adaptive/schedule-impact";
-import { AdaptationStrategyCard } from "@/components/adaptive/adaptation-strategy-card";
-import { ScheduleAdjustmentModal } from "@/components/adaptive/schedule-adjustment-modal";
-import { adaptiveScenarios, changeHistory } from "@/lib/adaptive-demo-data";
-import { Sparkles, History, ChevronRight, ShieldCheck } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { getAdaptiveState } from "@/app/actions/analytics";
+import { AlertTriangle, CheckCircle, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default function AdaptivePlanningPage() {
-  const [scenarioId, setScenarioId] = useState("behind-2-days");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedStrategy, setSelectedStrategy] = useState<string | null>(null);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const scenario = adaptiveScenarios.find(s => s.id === scenarioId)!;
+  useEffect(() => {
+    async function fetchData() {
+      const result = await getAdaptiveState();
+      setData(result);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  if (loading) return <AppShell><div className="p-8 text-center text-ink-secondary">Loading adaptive state...</div></AppShell>;
+
+  const isBehind = data.daysBehind > 0;
 
   return (
     <AppShell>
       <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <PageHeader title="Adaptive Planning" description="Intelligent schedule recovery and pacing insights." />
-          <ScenarioSelector value={scenarioId} onChange={(v) => { setScenarioId(v); setSelectedStrategy(null); }} />
-        </div>
+        <PageHeader title="Adaptive Planning" description="Intelligent schedule recovery and pacing insights." />
 
-        <AdaptiveStatus status={scenario.drift.status} message={scenario.drift.reason} />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <ScheduleImpact drift={scenario.drift} />
-
-            {scenario.strategies.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Recovery Strategies</CardTitle>
-                    <Button variant="red" size="sm" onClick={() => setIsModalOpen(true)}>Review Adjustment</Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {scenario.strategies.map(s => (
-                      <AdaptationStrategyCard 
-                        key={s.id} 
-                        strategy={s} 
-                        isSelected={selectedStrategy === s.id}
-                        onSelect={() => setSelectedStrategy(s.id)}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Workload Protection Banner */}
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-navy-50 text-navy-700 border border-navy-100">
-              <ShieldCheck className="h-5 w-5 text-brand-600 shrink-0" />
-              <p className="text-sm font-medium">Workload Protection Active: StepSync will not allow daily study time to exceed 6 hours.</p>
+        <Card className={`border-l-4 ${isBehind ? 'border-l-accent-red bg-red-50/50' : 'border-l-emerald-500 bg-emerald-50/50'}`}>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className={`flex h-10 w-10 items-center justify-center rounded-full bg-white ${isBehind ? 'text-accent-red' : 'text-emerald-600'}`}>
+              {isBehind ? <AlertTriangle className="h-5 w-5" /> : <CheckCircle className="h-5 w-5" />}
             </div>
-          </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className={`text-sm font-bold uppercase tracking-wide ${isBehind ? 'text-accent-red-dark' : 'text-emerald-700'}`}>
+                  {data.status}
+                </h3>
+              </div>
+              <p className="text-sm text-ink-secondary mt-0.5">{data.reason}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="space-y-6">
-            {/* Adaptive Insights */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-accent-gold" />
-                  <CardTitle className="text-base">Adaptive Insights</CardTitle>
+        {isBehind && (
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-base font-bold text-navy-700 mb-4">Recovery Strategy</h3>
+              <div className="p-4 rounded-lg border-2 border-brand-500 bg-brand-50">
+                <p className="text-sm font-semibold text-navy-700">Spread the missed work</p>
+                <p className="text-xs text-ink-secondary mt-1">Add 20 minutes to your next few study days to catch up without overwhelming yourself today.</p>
+                <div className="mt-4">
+                  <Link href="/study/today">
+                    <button className="text-xs font-semibold text-brand-700 flex items-center gap-1">
+                      Go to Today's Plan <ArrowRight className="h-3 w-3" />
+                    </button>
+                  </Link>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {scenario.insights.map((insight, i) => (
-                  <div key={i} className="flex items-start gap-2 text-sm">
-                    <ChevronRight className="h-4 w-4 text-brand-500 mt-0.5 shrink-0" />
-                    <span className="text-ink-secondary">{insight}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Change History */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <History className="h-4 w-4 text-ink-tertiary" />
-                  <CardTitle className="text-base">Change History</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {changeHistory.map(ch => (
-                  <div key={ch.id} className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <div className="h-2 w-2 rounded-full bg-ink-tertiary mt-1.5" />
-                      <div className="w-px h-full bg-surface-border" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-ink-tertiary">{ch.date}</p>
-                      <p className="text-sm font-semibold text-navy-700">{ch.reason}</p>
-                      <p className="text-xs text-ink-secondary mt-1">{ch.adjustment}</p>
-                      <Badge variant="green" className="mt-1">{ch.result}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
-
-      <ScheduleAdjustmentModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        drift={scenario.drift}
-        strategies={scenario.strategies}
-      />
     </AppShell>
   );
 }

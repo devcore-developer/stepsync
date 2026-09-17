@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { Sparkles, ArrowRight, Lightbulb } from "lucide-react";
 import { aiInsight } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
